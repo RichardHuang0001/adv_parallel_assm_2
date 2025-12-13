@@ -1,6 +1,7 @@
 /*
  *   Floyd's all-pairs shortest path algorithm
  *   (Sequential version)
+ *    filename: sequential_code.c
  *
  *   Given an nxn matrix of distances between pairs of
  *   vertices, this program computes the shortest path
