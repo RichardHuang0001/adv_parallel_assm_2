@@ -23,7 +23,7 @@
 typedef int dtype;
 #define MPI_TYPE MPI_INT
 
-#define INF 999999999
+#define INF 999999
 
 /* Safe add to avoid overflow when combining two finite path lengths */
 static inline dtype safe_add(dtype x, dtype y) {
