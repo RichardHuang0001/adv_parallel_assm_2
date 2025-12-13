@@ -41,9 +41,9 @@ HOST_FILE="hosts_${current_time}.txt"
 cat <<EOF > "${PROGRAM}.job"
 #!/bin/bash
 #SBATCH --job-name=${JOB_NAME}
-#SBATCH --output=/uac/msc/username/cmsc5702/${OUTPUT_FILE}
-#SBATCH --error=/uac/msc/username/cmsc5702/%x_%j.err  # Standard error log as $job_name_$job_id.err
-#SBATCH --mail-user=username@cse.cuhk.edu.hk
+#SBATCH --output=/uac/msc/whuang25/cmsc5702/${OUTPUT_FILE}
+#SBATCH --error=/uac/msc/whuang25/cmsc5702/%x_%j.err  # Standard error log as $job_name_$job_id.err
+#SBATCH --mail-user=whuang25@cse.cuhk.edu.hk
 #SBATCH --mail-type=ALL
 #SBATCH --time=00:30:00           # Wall-clock time limit (e.g., 30 minutes)
 
