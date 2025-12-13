@@ -1,0 +1,6 @@
+再用mpicc进行编译之前，在hpc1上要设置一下环境变量：
+
+export OPENMPI=/usr/local/openmpi
+export PATH=$OPENMPI/bin:$PATH
+export LD_LIBRARY_PATH=$OPENMPI/lib:$LD_LIBRARY_PATH
+hash -r
