@@ -74,8 +74,17 @@ set -euo pipefail
 HOST_FILE="hosts_\${SLURM_JOB_ID}.txt"
 scontrol show hostnames "\${SLURM_NODELIST}" | awk '{print \$0" slots=${TASKS_PER_NODE}"}' > "\${HOST_FILE}"
 
-# Run the MPI program
-mpiexec.openmpi --hostfile "${HOST_FILE}" -n ${PROCESSORS} ./"${PROGRAM}" /uac/msc/whuang25/adv_parallel_assm_2/data/data${PROBLEM_SIZE}
+# Minimal diagnostics (safe to keep; remove later if you want cleaner logs)
+echo "PWD=\$(pwd)"
+echo "HOST_FILE=\${HOST_FILE}"
+echo "First few hosts:"
+head -n 10 "\${HOST_FILE}" || true
+echo "PROGRAM=./${PROGRAM}"
+echo "INPUT=/uac/msc/whuang25/adv_parallel_assm_2/data/data${PROBLEM_SIZE}"
+ls -l "./${PROGRAM}" "/uac/msc/whuang25/adv_parallel_assm_2/data/data${PROBLEM_SIZE}"
+
+# Run the MPI program (NOTE: \${HOST_FILE} must expand at job runtime)
+mpiexec.openmpi --hostfile "\${HOST_FILE}" -n ${PROCESSORS} "./${PROGRAM}" "/uac/msc/whuang25/adv_parallel_assm_2/data/data${PROBLEM_SIZE}"
 
 # Clean up the hostfile
 rm -f "\${HOST_FILE}"
