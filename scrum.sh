@@ -61,6 +61,7 @@ cat <<EOF > "${PROGRAM}.job"
 #SBATCH --mail-user=whuang25@cse.cuhk.edu.hk
 #SBATCH --mail-type=ALL
 #SBATCH --time=00:30:00
+#SBATCH --chdir=/uac/msc/whuang25/adv_parallel_assm_2
 
 #SBATCH --nodes=${NUM_NODES}
 #SBATCH --ntasks=${PROCESSORS}
@@ -74,7 +75,7 @@ HOST_FILE="hosts_\${SLURM_JOB_ID}.txt"
 scontrol show hostnames "\${SLURM_NODELIST}" | awk '{print \$0" slots=${TASKS_PER_NODE}"}' > "\${HOST_FILE}"
 
 # Run the MPI program
-mpiexec.openmpi --hostfile "\${HOST_FILE}" -n ${PROCESSORS} ./${PROGRAM} data/data${PROBLEM_SIZE}
+mpiexec.openmpi --hostfile "${HOST_FILE}" -n ${PROCESSORS} ./"${PROGRAM}" /uac/msc/whuang25/adv_parallel_assm_2/data/data${PROBLEM_SIZE}
 
 # Clean up the hostfile
 rm -f "\${HOST_FILE}"
