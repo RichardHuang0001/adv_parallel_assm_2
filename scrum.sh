@@ -3,6 +3,7 @@
 # --- Check for correct number of arguments ---
 if [ "$#" -ne 3 ]; then
     echo "Usage: $0 <program> <processors> <problem_size>"
+    echo "Example: $0 floyd_chk 16 3000"
     exit 1
 fi
 
@@ -11,55 +12,82 @@ PROGRAM=$1
 PROCESSORS=$2
 PROBLEM_SIZE=$3
 
-if [ "$PROCESSORS" -eq 1 ]; then
+# --- Validate processors (must be one of the required perfect squares) ---
+case "$PROCESSORS" in
+  1)
     NUM_NODES=1
     TASKS_PER_NODE=1
-elif [ "$PROCESSORS" -eq 4 ]; then
+    ;;
+  4)
     NUM_NODES=2
     TASKS_PER_NODE=2
-elif [ "$PROCESSORS" -eq 9 ]; then
+    ;;
+  9)
     NUM_NODES=3
     TASKS_PER_NODE=3
-elif [ "$PROCESSORS" -eq 16 ]; then
+    ;;
+  16)
     NUM_NODES=4
     TASKS_PER_NODE=4
-elif [ "$PROCESSORS" -eq 25 ]; then
+    ;;
+  25)
     NUM_NODES=4
     TASKS_PER_NODE=7
-elif [ "$PROCESSORS" -eq 36 ]; then
+    ;;
+  36)
     NUM_NODES=4
     TASKS_PER_NODE=9
-fi
+    ;;
+  *)
+    echo "Error: <processors> must be one of: 1 4 9 16 25 36"
+    exit 1
+    ;;
+esac
 
 # --- Define job-specific variables ---
 JOB_NAME="${PROGRAM}_p${PROCESSORS}_n${PROBLEM_SIZE}"
 OUTPUT_FILE="${PROGRAM}_p${PROCESSORS}_n${PROBLEM_SIZE}_%j.out"
-current_time=$(date +%s)
-HOST_FILE="hosts_${current_time}.txt"
+
+# --- Output directory (must exist) ---
+OUTDIR="/uac/msc/whuang25/cmsc5702"
+mkdir -p "${OUTDIR}"
 
 # --- Create the Slurm job script using a heredoc ---
 cat <<EOF > "${PROGRAM}.job"
 #!/bin/bash
 #SBATCH --job-name=${JOB_NAME}
-#SBATCH --output=/uac/msc/whuang25/cmsc5702/${OUTPUT_FILE}
-#SBATCH --error=/uac/msc/whuang25/cmsc5702/%x_%j.err  # Standard error log as $job_name_$job_id.err
+#SBATCH --output=${OUTDIR}/${OUTPUT_FILE}
+#SBATCH --error=${OUTDIR}/%x_%j.err
 #SBATCH --mail-user=whuang25@cse.cuhk.edu.hk
 #SBATCH --mail-type=ALL
-#SBATCH --time=00:30:00           # Wall-clock time limit (e.g., 30 minutes)
+#SBATCH --time=00:30:00
+#SBATCH --chdir=/uac/msc/whuang25/adv_parallel_assm_2
 
 #SBATCH --nodes=${NUM_NODES}
 #SBATCH --ntasks=${PROCESSORS}
 #SBATCH --ntasks-per-node=${TASKS_PER_NODE}
-#SBATCH --cpus-per-task=1         # One CPU per task (for MPI)
+#SBATCH --cpus-per-task=1
 
-# Create a hostfile based on SLURM allocated nodes
-scontrol show hostnames "\$SLURM_NODELIST" | awk '{print \$0" slots=${TASKS_PER_NODE}"}' > ${HOST_FILE}
+set -euo pipefail
 
-# Run the MPI program
-mpiexec.openmpi --hostfile ${HOST_FILE} -n ${PROCESSORS} ./${PROGRAM} datafiles/data${PROBLEM_SIZE}
+# Create a hostfile based on SLURM allocated nodes (unique per job)
+HOST_FILE="hosts_\${SLURM_JOB_ID}.txt"
+scontrol show hostnames "\${SLURM_NODELIST}" | awk '{print \$0" slots=${TASKS_PER_NODE}"}' > "\${HOST_FILE}"
+
+# Minimal diagnostics (safe to keep; remove later if you want cleaner logs)
+echo "PWD=\$(pwd)"
+echo "HOST_FILE=\${HOST_FILE}"
+echo "First few hosts:"
+head -n 10 "\${HOST_FILE}" || true
+echo "PROGRAM=./${PROGRAM}"
+echo "INPUT=/uac/msc/whuang25/adv_parallel_assm_2/data/data${PROBLEM_SIZE}"
+ls -l "./${PROGRAM}" "/uac/msc/whuang25/adv_parallel_assm_2/data/data${PROBLEM_SIZE}"
+
+# Run the MPI program (NOTE: \${HOST_FILE} must expand at job runtime)
+mpiexec.openmpi --hostfile "\${HOST_FILE}" -n ${PROCESSORS} "./${PROGRAM}" "/uac/msc/whuang25/adv_parallel_assm_2/data/data${PROBLEM_SIZE}"
 
 # Clean up the hostfile
-rm ${HOST_FILE}
+rm -f "\${HOST_FILE}"
 EOF
 
 # --- Submit the generated job script ---
