@@ -1,0 +1,34 @@
+#!/bin/bash
+#SBATCH --job-name=floyd_chk_p36_n6000
+#SBATCH --output=/uac/msc/whuang25/cmsc5702/floyd_chk_p36_n6000_%j.out
+#SBATCH --error=/uac/msc/whuang25/cmsc5702/%x_%j.err
+#SBATCH --mail-user=whuang25@cse.cuhk.edu.hk
+#SBATCH --mail-type=ALL
+#SBATCH --time=00:30:00
+#SBATCH --chdir=/uac/msc/whuang25/adv_parallel_assm_2
+
+#SBATCH --nodes=4
+#SBATCH --ntasks=36
+#SBATCH --ntasks-per-node=9
+#SBATCH --cpus-per-task=1
+
+set -euo pipefail
+
+# Create a hostfile based on SLURM allocated nodes (unique per job)
+HOST_FILE="hosts_${SLURM_JOB_ID}.txt"
+scontrol show hostnames "${SLURM_NODELIST}" | awk '{print $0" slots=9"}' > "${HOST_FILE}"
+
+# Minimal diagnostics (safe to keep; remove later if you want cleaner logs)
+echo "PWD=$(pwd)"
+echo "HOST_FILE=${HOST_FILE}"
+echo "First few hosts:"
+head -n 10 "${HOST_FILE}" || true
+echo "PROGRAM=./floyd_chk"
+echo "INPUT=/uac/msc/whuang25/adv_parallel_assm_2/data/data6000"
+ls -l "./floyd_chk" "/uac/msc/whuang25/adv_parallel_assm_2/data/data6000"
+
+# Run the MPI program (NOTE: ${HOST_FILE} must expand at job runtime)
+mpiexec.openmpi --hostfile "${HOST_FILE}" -n 36 "./floyd_chk" "/uac/msc/whuang25/adv_parallel_assm_2/data/data6000"
+
+# Clean up the hostfile
+rm -f "${HOST_FILE}"
