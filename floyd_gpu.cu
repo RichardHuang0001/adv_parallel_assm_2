@@ -18,6 +18,16 @@
 #include <cuda_runtime.h>
 #include <time.h>
 
+/* Simple CUDA error checking helper */
+#define CUDA_CHECK(call) do {                                  \
+    cudaError_t _e = (call);                                   \
+    if (_e != cudaSuccess) {                                   \
+        fprintf(stderr, "CUDA error %s:%d: %s\n",              \
+                __FILE__, __LINE__, cudaGetErrorString(_e));   \
+        exit(EXIT_FAILURE);                                    \
+    }                                                          \
+} while (0)
+
 #define BLOCK_SIZE 32
 
 typedef int dtype;
@@ -26,6 +36,24 @@ typedef int dtype;
 __global__ void compute_shortest_paths(dtype *d_a, int n, int k) {
     // TODO: Add your code to complete the Floyd's algorithm.
     //       You may use the built-in CUDA min() function here.
+
+    int j = (int)(blockIdx.x * blockDim.x + threadIdx.x);
+    int i = (int)(blockIdx.y * blockDim.y + threadIdx.y);
+
+    if (i >= n || j >= n) return;
+
+    const dtype INF = 999999;
+
+    dtype a_ik = d_a[i * n + k];
+    dtype a_kj = d_a[k * n + j];
+
+    // If either segment is INF, the path via k is not usable.
+    if (a_ik == INF || a_kj == INF) return;
+
+    dtype via = a_ik + a_kj;
+
+    dtype cur = d_a[i * n + j];
+    d_a[i * n + j] = min(cur, via);
 }
 
 void print_matrix(dtype *a, int n) {
@@ -74,9 +102,10 @@ int main(int argc, char *argv[]) {
 
     // Allocate the adjacency matrix (flattened) on the GPU device
     // Assume the array is called d_a.
-    cudaMalloc(&d_a, m * n * sizeof(dtype));
+    CUDA_CHECK(cudaMalloc(&d_a, m * n * sizeof(dtype)));
 
     // TODO: copy the adjacency matrix from host to device
+    CUDA_CHECK(cudaMemcpy(d_a, a, m * n * sizeof(dtype), cudaMemcpyHostToDevice));
 
     timespec_get(&stime, TIME_UTC);
 
@@ -86,7 +115,7 @@ int main(int argc, char *argv[]) {
     for (int k = 0; k < n; k++) {
         // Pass n and k to the kernel
         compute_shortest_paths<<<blocks, threads>>>(d_a, n, k);
-        cudaDeviceSynchronize();
+        CUDA_CHECK(cudaDeviceSynchronize());
     }
     
     // Check for potential errors during kernel execution
@@ -98,6 +127,7 @@ int main(int argc, char *argv[]) {
     timespec_get(&etime, TIME_UTC);
 
     // TODO: copy the adjacency matrix from device to host
+    CUDA_CHECK(cudaMemcpy(a, d_a, m * n * sizeof(dtype), cudaMemcpyDeviceToHost));
 
     printf("CUDA Floyd, matrix size %d: %.5Lf seconds\n", n,
         (long double)(etime.tv_sec - stime.tv_sec) +
@@ -108,7 +138,7 @@ int main(int argc, char *argv[]) {
     print_matrix(a, n);
 #endif
 
-    cudaFree(d_a);
+    CUDA_CHECK(cudaFree(d_a));
     free(a);
     return 0;
 }
