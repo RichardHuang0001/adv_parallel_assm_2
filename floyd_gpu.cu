@@ -8,8 +8,8 @@
  *
  *   CMSC5702 Assignment 2
  *   =====================
- *   Student Name: <Your full name here>
- *   Student ID: <Your student ID here>
+ *   Student Name: <Huang Wei>
+ *   Student ID: <1155239424>
  *
  */
 
